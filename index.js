@@ -16,7 +16,7 @@ app.use(cookieParser());
 const verifyToken = (req, res, next) => {
     try {
         const token = req?.headers?.token;
-        // console.log(token)
+        console.log('from headers', token)
         if (!token) {
             return res?.status(401)?.send({ message: 'forbidden access' })
         }
@@ -75,7 +75,8 @@ async function run() {
             try {
                 const email = req?.decoded?.email;
                 const filter = { email: email }
-                const user = await userCollection.findOne(filter)
+                const user = await userCollection.findOne(filter);
+                console.log({ decodedEmail: email, role: user?.role, userEmail: user?.email })
                 // console.log(user, 'from verifyCreator');
                 if (user?.role !== 'creator') {
                     return res.status(403).send({ message: 'unauthorized access' })
@@ -91,7 +92,7 @@ async function run() {
                 const email = req?.decoded?.email;
                 const filter = { email: email }
                 const user = await userCollection.findOne(filter)
-                // console.log(user, 'from verifyadmin');
+                console.log({ decodedEmail: email, role: user?.role, userEmail: user?.email })
                 if (user?.role !== 'admin') {
                     return res.status(403).send({ message: 'unauthorized access' })
                 }
@@ -134,6 +135,43 @@ async function run() {
                 console.log(error)
             }
         })
+
+        app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const result = await userCollection.find().toArray();
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        app.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const id = req?.params?.id;
+                const filter = { _id: new ObjectId(id) };
+                const result = await userCollection.deleteOne(filter);
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        app.put('/toggleRole/:id', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const id = req?.params?.id;
+                const newRole = req?.body;
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        role: newRole?.newRole
+                    },
+                };
+                const result = await userCollection.updateOne(filter, updateDoc)
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
         //  >>>>>>>>>>>>>>>>>>>>>>users related api<<<<<<<<<<<<<<
 
         // contests related apis
@@ -161,15 +199,49 @@ async function run() {
         app.delete('/contests/:id', verifyToken, verifyCreator, async (req, res) => {
             try {
                 const id = req?.params?.id;
-
                 const contest = await contestCollection.findOne({ _id: new ObjectId(id) });
-                console.log(contest)
+
                 if (contest?.status === 'approved') {
                     return res.send({ message: 'Already approved by admin', deleteCound: 0 })
                 }
 
                 const filter = { _id: new ObjectId(id) };
                 const result = await contestCollection.deleteOne(filter);
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        // update
+        app.get('/singleContest/:id', verifyToken, async (req, res) => {
+            try {
+                const id = req?.params?.id;
+                const filter = { _id: new ObjectId(id) };
+                const result = await contestCollection.findOne(filter);
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        app.put('/contests/:id', verifyToken, verifyCreator, async (req, res) => {
+            try {
+                const id = req?.params?.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateIt = req?.body;
+
+                const contest = await contestCollection.findOne(filter);
+                if (contest?.status === 'approved') {
+                    return res.send({ message: 'Already approved by admin', modifiedCount: 0 })
+                }
+
+                const updateDoc = {
+                    $set: {
+                        ...updateIt
+                    },
+                };
+                const result = await contestCollection.updateOne(filter, updateDoc)
                 res.send(result);
             } catch (error) {
                 console.log(error)
