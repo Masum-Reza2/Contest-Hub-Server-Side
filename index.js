@@ -224,9 +224,20 @@ async function run() {
             }
         })
 
-        app.get('/contests', verifyToken, verifyAdmin, async (req, res) => {
+        app.get('/contests', async (req, res) => {
             try {
                 const result = await contestCollection.find().toArray();
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        app.get('/contests/:id', async (req, res) => {
+            try {
+                const id = req?.params?.id;
+                const filter = { _id: new ObjectId(id) };
+                const result = await contestCollection.findOne(filter);
                 res.send(result);
             } catch (error) {
                 console.log(error)
