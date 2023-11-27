@@ -103,7 +103,7 @@ async function run() {
         }
         // role checker
 
-        //  >>>>>>>>>>>>>>>>>>>>>>users related api<<<<<<<<<<<<<<
+        //  >>>>>>>>>>>>>>>>>>>>>>JWT related api<<<<<<<<<<<<<<
         app.post('/jwt', async (req, res) => {
             try {
                 const user = req.body;
@@ -113,7 +113,7 @@ async function run() {
                 console.log(error)
             }
         })
-        //  >>>>>>>>>>>>>>>>>>>>>>users related api<<<<<<<<<<<<<<
+        //  >>>>>>>>>>>>>>>>>>>>>>JWT related api<<<<<<<<<<<<<<
 
 
         //  >>>>>>>>>>>>>>>>>>>>>>users related api<<<<<<<<<<<<<<
@@ -262,6 +262,24 @@ async function run() {
                     },
                 };
                 const result = await contestCollection.updateOne(filter, updateDoc)
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        app.put('/contestsAdmin/:id', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const id = req?.params?.id;
+                const newStatus = req?.body;
+
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        status: newStatus?.newStatus
+                    },
+                };
+                const result = await contestCollection.updateOne(filter, updateDoc);
                 res.send(result);
             } catch (error) {
                 console.log(error)
