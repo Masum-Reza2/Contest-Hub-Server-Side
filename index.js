@@ -355,7 +355,6 @@ async function run() {
             }
         })
 
-        // todo
         app.get('/setWinner/:id', verifyToken, async (req, res) => {
             try {
                 const contestId = req?.params?.id;
@@ -381,14 +380,13 @@ async function run() {
             }
         })
 
-        // todo unused
-        app.get('/getWinner', async (req, res) => {
+        app.get('/getWinner/:id', async (req, res) => {
             try {
-                const filter = { isWin: true }
-                const winner = await paymentCollection.find(filter).toArray();
-                if (winner?.length <= 0) {
-                    return res.send({ message: 'Winner is not declered yet!' })
-                }
+                const contestId = req?.params?.id;
+                const filter = { contestId: contestId };
+                const contestParticipants = await paymentCollection.find(filter).toArray();
+                const winner = await contestParticipants.filter(participant => participant?.isWin === true);
+                // console.log('the winner', winner)
                 res.send(winner);
             } catch (error) {
                 console.log(error)
