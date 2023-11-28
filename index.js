@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 
 // >>>>>>>>>>>>>>>middlewares<<<<<<<<<<<<<<<<
@@ -55,6 +56,7 @@ async function run() {
         const database = client.db("contestDB");
         const userCollection = database.collection("users");
         const contestCollection = database.collection("contests");
+        const paymentCollection = database.collection("payments");
         // >>>>>>collections<<<<<<<<<<
 
         // role checker
@@ -298,7 +300,142 @@ async function run() {
         })
         // contests related apis
 
+        // >>>>>>>>>>>user participation and win api's<<<<<<<<<<<<<<<<<<
+        app.get('/specificParticipants/:email', verifyToken, async (req, res) => {
+            try {
+                const email = req?.params?.email;
+                const filter = { email: email };
+                const participations = await paymentCollection.find(filter).toArray();
+                const contestIds = participations?.map(id => new ObjectId(id?.contestId));
 
+                const query = {
+                    _id: {
+                        $in: contestIds
+                    }
+                }
+
+                const result = await contestCollection.find(query).toArray();
+
+                res.send(result)
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        app.get('/contestParticipants/:id', async (req, res) => {
+            try {
+                const id = req?.params?.id;
+                const filter = { contestId: id };
+                const contestParticipants = await paymentCollection.find(filter).toArray();
+
+                res.send(contestParticipants)
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        // todo
+        app.get('/setWinner', verifyToken, async (req, res) => {
+            try {
+                const filter = { isWin: true }
+                const contestant = await paymentCollection.find(filter).toArray();
+                if (contestant?.length) {
+                    return res.send({ message: 'Winner already declered!' })
+                }
+
+                const totalContestant = await paymentCollection.find().toArray();
+                const randomNumber = Math.floor(Math.random() * totalContestant?.length);
+                const winner = totalContestant[randomNumber]
+
+                // updating isWin true in db
+                const updateDoc = {
+                    $set: {
+                        isWin: true
+                    },
+                };
+                const updateWinnerInDB = await paymentCollection.updateOne({ _id: new ObjectId(winner?._id) }, updateDoc)
+
+                res.send({ winner, updateWinnerInDB });
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        // todo
+        app.get('/getWinner', async (req, res) => {
+            try {
+                const filter = { isWin: true }
+                const winner = await paymentCollection.find(filter).toArray();
+                if (winner?.length <= 0) {
+                    return res.send({ message: 'Winner is not declered yet!' })
+                }
+                res.send(winner);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        app.put('/setWinnerByCreator/:id', async (req, res) => {
+            try {
+                const contestId = req?.params?.id;
+                const filter = { contestId: contestId };
+                const contestParticipants = await paymentCollection.find(filter).toArray();
+                const isAlreadyWin = contestParticipants.filter(participant => participant?.isWin === true)
+                if (isAlreadyWin?.length > 0) {
+                    return res.send({ message: 'Winner already declered!' })
+                }
+
+                const id = req?.body?.id;
+                const query = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        isWin: true
+                    },
+                };
+                const result = await paymentCollection.updateOne(query, updateDoc)
+                res.send(result)
+            } catch (error) {
+                console.log(error)
+            }
+        })
+        // >>>>>>>>>>>user participation and win api's<<<<<<<<<<<<<<<<<<
+
+        // >>>>>>>>>>>>>>>>PAYMENT INTENT<<<<<<<<<<<<<<<<<<
+        app.post("/create-payment-intent", async (req, res) => {
+            try {
+                const { price } = req?.body;
+                const amount = parseInt(price * 100);
+
+                const paymentIntent = await stripe.paymentIntents.create({
+
+                    amount: amount,
+
+                    // don't forget to add it
+                    payment_method_types: ["card"],
+
+                    currency: "usd",
+                });
+
+                res.send({
+                    clientSecret: paymentIntent.client_secret,
+                });
+
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        // >>>>>>>>>>>>payment related api's<<<<<<<<<<<<<<<
+        app.post('/payments', async (req, res) => {
+            try {
+                const paymentInfo = req?.body;
+                const result = await paymentCollection.insertOne(paymentInfo);
+                res.send(result)
+            } catch (error) {
+                console.log(error)
+            }
+        })
+        // >>>>>>>>>>>>payment related api's<<<<<<<<<<<<<<<
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
