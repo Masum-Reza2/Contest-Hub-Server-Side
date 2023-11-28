@@ -444,10 +444,24 @@ async function run() {
         })
 
         // >>>>>>>>>>>>payment related api's<<<<<<<<<<<<<<<
-        app.post('/payments', async (req, res) => {
+        app.post('/payments', verifyToken, async (req, res) => {
             try {
                 const paymentInfo = req?.body;
                 const result = await paymentCollection.insertOne(paymentInfo);
+
+                // update participant count
+                const id = paymentInfo.contestId;
+                const filter = { _id: new ObjectId(id) };
+                const contest = await contestCollection.findOne(filter);
+                const previousCount = contest?.participateCount;
+
+                const updateDoc = {
+                    $set: {
+                        participateCount: previousCount + 1
+                    },
+                };
+                const update = await contestCollection.updateOne(filter, updateDoc)
+
                 res.send(result)
             } catch (error) {
                 console.log(error)
