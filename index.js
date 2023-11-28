@@ -322,6 +322,27 @@ async function run() {
             }
         })
 
+        app.get('/userWinnings/:email', verifyToken, async (req, res) => {
+            try {
+                const email = req?.params?.email;
+                const filter = { email: email };
+                const participations = await paymentCollection.find(filter).toArray();
+                const winContests = participations.filter(contest => contest?.isWin === true);
+                const contestIds = winContests?.map(id => new ObjectId(id?.contestId));
+
+                const query = {
+                    _id: {
+                        $in: contestIds
+                    }
+                }
+                const result = await contestCollection.find(query).toArray();
+
+                res.send(result)
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
         app.get('/contestParticipants/:id', async (req, res) => {
             try {
                 const id = req?.params?.id;
@@ -335,33 +356,32 @@ async function run() {
         })
 
         // todo
-        app.get('/setWinner', verifyToken, async (req, res) => {
+        app.get('/setWinner/:id', verifyToken, async (req, res) => {
             try {
-                const filter = { isWin: true }
-                const contestant = await paymentCollection.find(filter).toArray();
-                if (contestant?.length) {
+                const contestId = req?.params?.id;
+                const filter = { contestId: contestId };
+                const contestParticipants = await paymentCollection.find(filter).toArray();
+                const isAlreadyWin = contestParticipants.filter(participant => participant?.isWin === true)
+                if (isAlreadyWin?.length > 0) {
                     return res.send({ message: 'Winner already declered!' })
                 }
 
-                const totalContestant = await paymentCollection.find().toArray();
-                const randomNumber = Math.floor(Math.random() * totalContestant?.length);
-                const winner = totalContestant[randomNumber]
-
-                // updating isWin true in db
                 const updateDoc = {
                     $set: {
                         isWin: true
                     },
                 };
-                const updateWinnerInDB = await paymentCollection.updateOne({ _id: new ObjectId(winner?._id) }, updateDoc)
 
-                res.send({ winner, updateWinnerInDB });
+                const randomNumber = Math.floor(Math.random() * contestParticipants?.length);
+                const winner = contestParticipants[randomNumber];
+                const result = await paymentCollection.updateOne({ _id: new ObjectId(winner?._id) }, updateDoc)
+                res.send(result)
             } catch (error) {
                 console.log(error)
             }
         })
 
-        // todo
+        // todo unused
         app.get('/getWinner', async (req, res) => {
             try {
                 const filter = { isWin: true }
@@ -375,7 +395,7 @@ async function run() {
             }
         })
 
-        app.put('/setWinnerByCreator/:id', async (req, res) => {
+        app.put('/setWinnerByCreator/:id', verifyToken, verifyCreator, async (req, res) => {
             try {
                 const contestId = req?.params?.id;
                 const filter = { contestId: contestId };
