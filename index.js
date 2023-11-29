@@ -469,6 +469,35 @@ async function run() {
         })
         // >>>>>>>>>>>>payment related api's<<<<<<<<<<<<<<<
 
+        // >>>>>>>>>>>>>>top contests<<<<<<<<<<<<<<<<<<<
+        app.get('/populerContest', async (req, res) => {
+            try {
+                const searchText = req?.query?.searchText;
+                const options = {
+                    sort: { participateCount: -1 },
+                };
+
+                if (searchText) {
+                    const query = {
+                        $or: [
+                            { contestType: { $regex: searchText, $options: 'i' } },
+                        ]
+                    };
+                    const result = await contestCollection.find(query, options).limit(5).toArray() || [];
+                    return res.send(result);
+                }
+
+                const cursor = contestCollection.find({}, options).limit(5);
+                const result = await cursor.toArray();
+                res.send(result);
+            } catch (error) {
+                console.log(error);
+            }
+        });
+        // >>>>>>>>>>>>>>top contests<<<<<<<<<<<<<<<<<<<
+
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
