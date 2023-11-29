@@ -494,6 +494,16 @@ async function run() {
                 console.log(error);
             }
         });
+
+        app.get('/getAllWinner', async (req, res) => {
+            try {
+                const filter = { isWin: true }
+                const result = await paymentCollection.find(filter).toArray();
+                res?.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
         // >>>>>>>>>>>>>>top contests<<<<<<<<<<<<<<<<<<<
 
 
