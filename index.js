@@ -495,6 +495,19 @@ async function run() {
             }
         });
 
+        app.get('/populerCreators', async (req, res) => {
+            try {
+                const options = {
+                    sort: { participateCount: -1 },
+                };
+                const cursor = contestCollection.find({}, options).limit(10);
+                const result = await cursor.toArray();
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
         app.get('/getAllWinner', async (req, res) => {
             try {
                 const filter = { isWin: true }
