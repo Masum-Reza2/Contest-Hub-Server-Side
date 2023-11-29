@@ -517,6 +517,46 @@ async function run() {
                 console.log(error)
             }
         })
+
+        app.get('/leaderboard', async (req, res) => {
+            try {
+                const pipeline = [
+                    {
+                        $match: { isWin: true }
+                    },
+                    {
+                        $group: {
+                            _id: '$email',
+                            totalWins: { $sum: 1 },
+                            totalPrizeMoney: { $sum: '$prizeMoney' },
+                            img: { $first: '$img' },
+                            prizeMoney: { $first: '$prizeMoney' },
+                            name: { $first: '$name' }
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            email: '$_id',
+                            totalWins: 1,
+                            totalPrizeMoney: 1,
+                            img: 1,
+                            prizeMoney: 1,
+                            name: 1
+                        }
+                    },
+                    {
+                        $sort: { totalWins: -1 }
+                    }
+                ];
+
+                const result = await paymentCollection.aggregate(pipeline).toArray();
+                res.send(result);
+            } catch (error) {
+                console.log(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
         // >>>>>>>>>>>>>>top contests<<<<<<<<<<<<<<<<<<<
 
 
