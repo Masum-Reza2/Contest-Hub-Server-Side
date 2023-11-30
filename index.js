@@ -138,15 +138,6 @@ async function run() {
             }
         })
 
-        app.get('/userCount', async (req, res) => {
-            try {
-                const count = await userCollection.estimatedDocumentCount();
-                res.send({ count })
-            } catch (error) {
-                console.log(error)
-            }
-        })
-
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
             try {
                 console.log(req?.query)
@@ -636,6 +627,18 @@ async function run() {
         })
         // >>>>>>>>>>>>>>Statistics api's<<<<<<<<<<<<<<<<<<<
 
+
+        // >>>>>>>>>>>>>>Pagination api's<<<<<<<<<<<<<<<<<<<
+        app.get('/adminPagination', async (req, res) => {
+            try {
+                const userCount = await userCollection.estimatedDocumentCount();
+                const contestCount = await contestCollection.estimatedDocumentCount();
+                res.send({ userCount, contestCount })
+            } catch (error) {
+                console.log(error)
+            }
+        })
+        // >>>>>>>>>>>>>>Pagination api's<<<<<<<<<<<<<<<<<<<
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
