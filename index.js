@@ -138,10 +138,26 @@ async function run() {
             }
         })
 
+        app.get('/userCount', async (req, res) => {
+            try {
+                const count = await userCollection.estimatedDocumentCount();
+                res.send({ count })
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
             try {
-                const result = await userCollection.find().toArray();
-                res.send(result);
+                console.log(req?.query)
+                const page = Number.parseFloat(req?.query?.page) || 1;
+                const size = Number.parseFloat(req?.query?.size) || 10;
+                const skip = (page - 1) * size;
+
+                let cursor = userCollection.find();
+
+                const result = await cursor.skip(skip).limit(size).toArray() || [];
+                res.send(result)
             } catch (error) {
                 console.log(error)
             }
