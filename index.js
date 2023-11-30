@@ -559,6 +559,49 @@ async function run() {
         });
         // >>>>>>>>>>>>>>top contests<<<<<<<<<<<<<<<<<<<
 
+        // >>>>>>>>>>>>>>Statistics api's<<<<<<<<<<<<<<<<<<<
+        app.get('/getContestInfo', verifyToken, verifyAdmin, async (req, res) => {
+            try {
+                const pipeline = [
+                    {
+                        $group: {
+                            _id: '$contestType',
+                            participateCount: { $sum: '$participateCount' }
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            contestType: '$_id',
+                            participateCount: 1
+                        }
+                    }
+                ];
+
+                const result = await contestCollection.aggregate(pipeline).toArray();
+                res.send(result);
+            } catch (error) {
+                console.log(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        app.get('/creatorContestInfo/:email', verifyToken, verifyCreator, async (req, res) => {
+            try {
+                const email = req?.params?.email;
+                const filter = { creatorEmail: email };
+
+                const options = {
+                    projection: { _id: 0, contestName: 1, participateCount: 1 },
+                };
+
+                const result = await contestCollection.find(filter, options).toArray();
+                res.send(result)
+            } catch (error) {
+                console.log(error)
+            }
+        })
+        // >>>>>>>>>>>>>>Statistics api's<<<<<<<<<<<<<<<<<<<
 
 
         // Send a ping to confirm a successful connection
