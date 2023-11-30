@@ -165,10 +165,27 @@ async function run() {
                 const filter = { _id: new ObjectId(id) };
                 const updateDoc = {
                     $set: {
-                        role: newRole?.newRole
+                        role: newRole?.newRole,
+                        promotionRequest: null
                     },
                 };
                 const result = await userCollection.updateOne(filter, updateDoc)
+                res.send(result);
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        app.put('/promotionRequest/:email', verifyToken, async (req, res) => {
+            try {
+                const email = req?.params?.email;
+                const filter = { email: email };
+                const updateDoc = {
+                    $set: {
+                        promotionRequest: true
+                    },
+                };
+                const result = await userCollection.updateOne(filter, updateDoc);
                 res.send(result);
             } catch (error) {
                 console.log(error)
