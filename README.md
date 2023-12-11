@@ -13,3 +13,14 @@
 - For one contest only one can be winner.
 - The creator and system can not make two winner in a contest.
 - The contest which created by a creator will never display to user untill the Admin approves it.
+
+If you are interested in exploring the power distribution, here are the login credentials for three roles on my dynamic website:
+---
+**Admin Role:**
+- Email: contest@admin.com
+- Password: 123456A!
+
+**Creator Role:**
+- Email: contest@creator.com
+- Password: 123456A! 
+---
